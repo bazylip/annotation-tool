@@ -43,4 +43,4 @@ jobs:
     - name: Run flake8
       run: flake8
     - name: Run Mypy
-      run: mypy annotation_tool
+      run: mypy src
