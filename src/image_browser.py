@@ -16,7 +16,7 @@ def parse_single_image(tree: ET.ElementTree) -> typing.Generator:
 
     for bndbox in root.iter("bndbox"):
         yield Coords(
-            bndbox.find("xmin").text, bndbox.find("ymin").text, bndbox.find("xmax").text, bndbox.find("ymax").text,
+            bndbox.find("xmin").text, bndbox.find("ymin").text, bndbox.find("xmax").text, bndbox.find("ymax").text
         )
 
 
