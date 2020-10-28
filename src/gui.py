@@ -3,7 +3,7 @@ import os
 import image_browser
 import time
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QFileDialog, QVBoxLayout
-from PyQt5.QtGui import QPixmap, QKeyEvent
+from PyQt5.QtGui import QPixmap, QKeyEvent, QCloseEvent
 from PyQt5.Qt import Qt
 from PyQt5.QtCore import QCoreApplication
 from PyQt5 import QtWidgets, QtCore
@@ -15,6 +15,9 @@ class MainApp(QWidget):
         super().__init__()
         self.layout = QVBoxLayout()
         self.key_pressed = False
+
+        self.current_file = None
+        self.current_cell = None
 
         self.init_ui()
 
@@ -28,28 +31,12 @@ class MainApp(QWidget):
         self.select_dir_button.setToolTip("Select directory")
         self.select_dir_button.clicked.connect(self.open_directory_browser)
 
-        self.select_file_button = QPushButton("Select file", self)
-        self.select_file_button.setToolTip("Select file")
-        self.select_file_button.clicked.connect(self.open_file_browser)
-
         self.layout.addWidget(self.select_dir_button)
-        self.layout.addWidget(self.select_file_button)
         self.setLayout(self.layout)
 
         QtWidgets.qApp.installEventFilter(self)
 
         self.show()
-
-    def open_file_browser(self) -> None:
-        """
-        Open file selection dialog
-
-        :return: None
-        """
-        #  path = os.getcwd()
-        path = "/home/bazyli/projects/dataset_leukocytes/annotations_test"
-        file_name, _ = QFileDialog.getOpenFileName(self, "Select file", path)
-        self.process_annotations_file(file_name)
 
     def open_directory_browser(self) -> None:
         """
@@ -57,34 +44,51 @@ class MainApp(QWidget):
 
         :return: None
         """
-        path = os.getcwd()
-        directory_name = QFileDialog.getExistingDirectory(self, "Select directory", path)
-        print(directory_name)
+        path = "/home/bazyli/projects/dataset_leukocytes"
+        self.directory_name = QFileDialog.getExistingDirectory(self, "Select directory", path)
+        start_file = os.path.join(self.directory_name, os.listdir(self.directory_name)[0])
+        self.finish_browsing = False
 
-    def process_annotations_file(self, file_path: str) -> None:
-        """
-        Show all cells contained in the annotations file
-
-        :param file_path: Path of annotations file
-        :return: None
-        """
-        self.select_dir_button.hide()
-        self.select_file_button.hide()
         self.image = QLabel(self)
         self.layout.addWidget(self.image)
 
-        coords_list = image_browser.parse_single_annotations_file(file_path)
-        self.cell_index = 0
+        while not self.finish_browsing:
+            start_file = self.process_annotations_file(start_file)
 
-        while True:
-            self.process_cell(file_path, coords_list[self.cell_index])
-            self.cell_index = (
-                0
-                if self.cell_index < 0
-                else len(coords_list) - 1
-                if self.cell_index > len(coords_list) - 1
-                else self.cell_index
-            )  # handle index out of range
+    def process_annotations_file(self, current_file: str) -> str:
+        """
+        Show all cells contained in the annotations file
+
+        :param current_file: Path of annotations file to process
+        :return: New file path
+        """
+        self.select_dir_button.hide()
+
+        self.finish_current_file = False
+        coords_list = image_browser.parse_single_annotations_file(current_file)  # list of cells' coords
+
+        if not self.current_cell:
+            self.current_cell = 0
+        elif self.current_cell == -1:  # -1 indicates starting from last cell
+            self.current_cell = len(coords_list) - 1
+
+        while not self.finish_current_file:
+            print(f"Current file: {current_file}, cell index: {self.current_cell}, coords length: {len(coords_list)}")
+            self.process_cell(current_file, coords_list[self.current_cell])
+
+            if self.current_cell < 0 or self.current_cell >= len(coords_list):  # go to previous/next file
+                old_filename_index = os.listdir(self.directory_name).index(current_file.split("/")[-1])
+                new_filename_index = old_filename_index - 1 if self.current_cell < 0 else old_filename_index + 1
+                new_filename_index = new_filename_index % len(
+                    os.listdir(self.directory_name)
+                )  # handle list index out of range
+
+                new_filename = os.listdir(self.directory_name)[new_filename_index]
+                self.current_cell = -1 if self.current_cell < 0 else 0
+
+                return os.path.join(self.directory_name, new_filename)
+
+        return ""
 
     def process_cell(self, file_path: str, coords: image_browser.Coords) -> None:
         """
@@ -99,11 +103,14 @@ class MainApp(QWidget):
         cropped_cell_img = ImageQt(cropped_cell)
         pixmap = QPixmap.fromImage(cropped_cell_img)
 
+        self.image.clear()
         self.image.setPixmap(pixmap)
         self.image.resize(pixmap.width(), pixmap.height())
         self.resize(pixmap.width(), pixmap.height())
 
-        while not self.key_pressed:
+        self.update()
+
+        while not self.key_pressed:  # wait for user to press key
             QCoreApplication.processEvents()
             time.sleep(0.05)
 
@@ -113,16 +120,24 @@ class MainApp(QWidget):
         """Key-press event handler"""
         if not event.isAutoRepeat() and not self.key_pressed:
             if event.key() == Qt.Key_Right:
-                self.cell_index += 1
+                self.current_cell += 1
                 self.key_pressed = True
             elif event.key() == Qt.Key_Left:
-                self.cell_index -= 1
+                self.current_cell -= 1
                 self.key_pressed = True
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Close application"""
+        self.finish_current_file = True
+        self.finish_browsing = True
+        self.key_pressed = True
 
     def eventFilter(self, source, event):
         """Low-level event handler"""
         if event.type() == QtCore.QEvent.KeyPress:
             self.keyPressEvent(event)
+        elif event.type() == QtCore.QEvent.Close:
+            self.closeEvent(event)
         return super().eventFilter(source, event)
 
 
