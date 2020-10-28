@@ -5,13 +5,14 @@ from collections import namedtuple
 Coords = namedtuple("Coords", ["x_min", "y_min", "x_max", "y_max"])
 
 
-def parse_single_image(tree: ET.ElementTree) -> typing.Generator:
+def parse_single_image(annotations_path: str) -> typing.Generator:
     """
     Return list containing coordinates of all cells in a single image from annotation file
 
-    :param tree: XML Element Tree
+    :param annotations_path: Path to annotations file
     :return: List of cell coordinates in the image
     """
+    tree = ET.parse(annotations_path)
     root = tree.getroot()
 
     for bndbox in root.iter("bndbox"):
@@ -20,15 +21,16 @@ def parse_single_image(tree: ET.ElementTree) -> typing.Generator:
         )
 
 
-def set_label(tree: ET.ElementTree, coords: Coords, label: str) -> ET.ElementTree:
+def set_label(annotations_path: str, coords: Coords, label: str) -> ET.ElementTree:
     """
     Set label of the cell
 
-    :param tree: Input XML Element Tree
+    :param annotations_path: Path to annotations file
     :param coords: Coordinates of cell to be labeled
     :param label: Label string
     :return: Modified XML Element Tree
     """
+    tree = ET.parse(annotations_path)
     root = tree.getroot()
     for candidate_object in root.findall("object"):
         if compare_bndbox(candidate_object.find("bndbox"), coords):
@@ -56,7 +58,6 @@ def compare_bndbox(candidate: ET.Element, coords: Coords) -> bool:
 
 if __name__ == "__main__":
     annotations_file = "/home/bazyli/projects/dataset_leukocytes/annotations_test/1_00002.xml"
-    tree = ET.parse(annotations_file)
-    for coords in parse_single_image(tree):
-        set_label(tree, coords, "dummy value").write(annotations_file)
+    for coords in parse_single_image(annotations_file):
+        set_label(annotations_file, coords, "dummy value").write(annotations_file)
         print(f"x_min: {coords.x_min}, y_min: {coords.y_min}, x_max: {coords.x_max}, y_max: {coords.y_max}")
