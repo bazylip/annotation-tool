@@ -4,6 +4,7 @@ from PIL import Image
 from collections import namedtuple
 
 Coords = namedtuple("Coords", ["x_min", "y_min", "x_max", "y_max"])
+IMG_RESIZE = 3
 
 
 def get_image_name(annotations_path: str) -> str:
@@ -30,7 +31,10 @@ def parse_single_image(annotations_path: str) -> typing.Generator:
 
     for bndbox in root.iter("bndbox"):
         yield Coords(
-            bndbox.find("xmin").text, bndbox.find("ymin").text, bndbox.find("xmax").text, bndbox.find("ymax").text
+            int(bndbox.find("xmin").text),
+            int(bndbox.find("ymin").text),
+            int(bndbox.find("xmax").text),
+            int(bndbox.find("ymax").text),
         )
 
 
@@ -61,10 +65,10 @@ def compare_bndbox(candidate: ET.Element, coords: Coords) -> bool:
     :return: True if matched, False otherwise
     """
     status = (
-        candidate.find("xmin").text == coords.x_min
-        and candidate.find("xmax").text == coords.x_max
-        and candidate.find("ymin").text == coords.y_min
-        and candidate.find("ymax").text == coords.y_max
+        int(candidate.find("xmin").text) == coords.x_min
+        and int(candidate.find("xmax").text) == coords.x_max
+        and int(candidate.find("ymin").text) == coords.y_min
+        and int(candidate.find("ymax").text) == coords.y_max
     )
     return status
 
@@ -80,7 +84,7 @@ def crop_cell_from_image(img_path: str, coords: Coords) -> Image:
     img = Image.open(img_path)
     crop_rectangle = (coords.x_min, coords.y_min, coords.x_max, coords.y_max)
     cropped_img = img.crop(crop_rectangle)
-
+    cropped_img = cropped_img.resize([int(IMG_RESIZE * dim) for dim in cropped_img.size], Image.ANTIALIAS)
     return cropped_img
 
 

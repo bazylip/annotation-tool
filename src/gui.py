@@ -1,8 +1,12 @@
 import sys
 import os
 import image_browser
+import time
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QFileDialog, QVBoxLayout
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QKeyEvent
+from PyQt5.Qt import Qt
+from PyQt5.QtCore import QCoreApplication
+from PyQt5 import QtWidgets, QtCore
 from PIL.ImageQt import ImageQt
 
 
@@ -10,6 +14,7 @@ class MainApp(QWidget):
     def __init__(self):
         super().__init__()
         self.layout = QVBoxLayout()
+        self.key_pressed = False
 
         self.init_ui()
 
@@ -30,6 +35,8 @@ class MainApp(QWidget):
         self.layout.addWidget(self.select_dir_button)
         self.layout.addWidget(self.select_file_button)
         self.setLayout(self.layout)
+
+        QtWidgets.qApp.installEventFilter(self)
 
         self.show()
 
@@ -63,23 +70,40 @@ class MainApp(QWidget):
         """
         self.select_dir_button.hide()
         self.select_file_button.hide()
-
-        image_path = image_browser.get_image_name(file_path)
-        cropped_cell = image_browser.crop_cell_from_image(image_path, image_browser.Coords(132, 142, 248, 304))
-        cropped_cell_img = ImageQt(cropped_cell)
-        pixmap = QPixmap.fromImage(cropped_cell_img)
-
         self.image = QLabel(self)
-        self.image.setPixmap(pixmap)
-        self.image.resize(pixmap.width(), pixmap.height())
         self.layout.addWidget(self.image)
 
-        self.resize(pixmap.width(), pixmap.height())
-        self.update()
-
         for coords in image_browser.parse_single_image(file_path):
-            image_browser.set_label(file_path, coords, "123").write(file_path)
-            print(f"x_min: {coords.x_min}, y_min: {coords.y_min}, x_max: {coords.x_max}, y_max: {coords.y_max}")
+            image_path = image_browser.get_image_name(file_path)
+            cropped_cell = image_browser.crop_cell_from_image(image_path, coords)
+            cropped_cell_img = ImageQt(cropped_cell)
+            pixmap = QPixmap.fromImage(cropped_cell_img)
+
+            print(image_path, coords)
+
+            self.image.setPixmap(pixmap)
+            self.image.resize(pixmap.width(), pixmap.height())
+            self.resize(pixmap.width(), pixmap.height())
+
+            while not self.key_pressed:
+                QCoreApplication.processEvents()
+                time.sleep(0.05)
+
+            self.key_pressed = False
+
+            #  image_browser.set_label(file_path, coords, "123").write(file_path)
+            # print(f"x_min: {coords.x_min}, y_min: {coords.y_min}, x_max: {coords.x_max}, y_max: {coords.y_max}")
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """Key-press event handler"""
+        if event.key() == Qt.Key_Right:
+            self.key_pressed = True
+
+    def eventFilter(self, source, event):
+        """Low-level event handler"""
+        if event.type() == QtCore.QEvent.KeyPress:
+            self.keyPressEvent(event)
+        return super().eventFilter(source, event)
 
 
 if __name__ == "__main__":
