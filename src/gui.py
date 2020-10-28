@@ -49,7 +49,7 @@ class MainApp(QWidget):
         #  path = os.getcwd()
         path = "/home/bazyli/projects/dataset_leukocytes/annotations_test"
         file_name, _ = QFileDialog.getOpenFileName(self, "Select file", path)
-        self.process_image(file_name)
+        self.process_annotations_file(file_name)
 
     def open_directory_browser(self) -> None:
         """
@@ -61,11 +61,11 @@ class MainApp(QWidget):
         directory_name = QFileDialog.getExistingDirectory(self, "Select directory", path)
         print(directory_name)
 
-    def process_image(self, file_path: str) -> None:
+    def process_annotations_file(self, file_path: str) -> None:
         """
-        Parse single annotation file
+        Show all cells contained in the annotations file
 
-        :param file_path: Path to annotation file
+        :param file_path: Path of annotations file
         :return: None
         """
         self.select_dir_button.hide()
@@ -73,31 +73,51 @@ class MainApp(QWidget):
         self.image = QLabel(self)
         self.layout.addWidget(self.image)
 
-        for coords in image_browser.parse_single_image(file_path):
-            image_path = image_browser.get_image_name(file_path)
-            cropped_cell = image_browser.crop_cell_from_image(image_path, coords)
-            cropped_cell_img = ImageQt(cropped_cell)
-            pixmap = QPixmap.fromImage(cropped_cell_img)
+        coords_list = image_browser.parse_single_annotations_file(file_path)
+        self.cell_index = 0
 
-            print(image_path, coords)
+        while True:
+            self.process_cell(file_path, coords_list[self.cell_index])
+            self.cell_index = (
+                0
+                if self.cell_index < 0
+                else len(coords_list) - 1
+                if self.cell_index > len(coords_list) - 1
+                else self.cell_index
+            )  # handle index out of range
 
-            self.image.setPixmap(pixmap)
-            self.image.resize(pixmap.width(), pixmap.height())
-            self.resize(pixmap.width(), pixmap.height())
+    def process_cell(self, file_path: str, coords: image_browser.Coords) -> None:
+        """
+        Display a single cell
 
-            while not self.key_pressed:
-                QCoreApplication.processEvents()
-                time.sleep(0.05)
+        :param file_path: Path of annotations file
+        :param coords: Coordinates of the cell
+        :return: None
+        """
+        image_path = image_browser.get_image_name(file_path)
+        cropped_cell = image_browser.crop_cell_from_image(image_path, coords)
+        cropped_cell_img = ImageQt(cropped_cell)
+        pixmap = QPixmap.fromImage(cropped_cell_img)
 
-            self.key_pressed = False
+        self.image.setPixmap(pixmap)
+        self.image.resize(pixmap.width(), pixmap.height())
+        self.resize(pixmap.width(), pixmap.height())
 
-            #  image_browser.set_label(file_path, coords, "123").write(file_path)
-            # print(f"x_min: {coords.x_min}, y_min: {coords.y_min}, x_max: {coords.x_max}, y_max: {coords.y_max}")
+        while not self.key_pressed:
+            QCoreApplication.processEvents()
+            time.sleep(0.05)
+
+        self.key_pressed = False
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         """Key-press event handler"""
-        if event.key() == Qt.Key_Right:
-            self.key_pressed = True
+        if not event.isAutoRepeat() and not self.key_pressed:
+            if event.key() == Qt.Key_Right:
+                self.cell_index += 1
+                self.key_pressed = True
+            elif event.key() == Qt.Key_Left:
+                self.cell_index -= 1
+                self.key_pressed = True
 
     def eventFilter(self, source, event):
         """Low-level event handler"""

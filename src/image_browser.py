@@ -19,7 +19,7 @@ def get_image_name(annotations_path: str) -> str:
     return root.find("path").text
 
 
-def parse_single_image(annotations_path: str) -> typing.Generator:
+def parse_single_annotations_file(annotations_path: str) -> typing.List[Coords]:
     """
     Return list containing coordinates of all cells in a single image from annotations file
 
@@ -29,13 +29,19 @@ def parse_single_image(annotations_path: str) -> typing.Generator:
     tree = ET.parse(annotations_path)
     root = tree.getroot()
 
+    coords_list = []
+
     for bndbox in root.iter("bndbox"):
-        yield Coords(
-            int(bndbox.find("xmin").text),
-            int(bndbox.find("ymin").text),
-            int(bndbox.find("xmax").text),
-            int(bndbox.find("ymax").text),
+        coords_list.append(
+            Coords(
+                int(bndbox.find("xmin").text),
+                int(bndbox.find("ymin").text),
+                int(bndbox.find("xmax").text),
+                int(bndbox.find("ymax").text),
+            )
         )
+
+    return coords_list
 
 
 def set_label(annotations_path: str, coords: Coords, label: str) -> ET.ElementTree:
@@ -90,6 +96,6 @@ def crop_cell_from_image(img_path: str, coords: Coords) -> Image:
 
 if __name__ == "__main__":
     annotations_file = "/home/bazyli/projects/dataset_leukocytes/annotations_test/1_00002.xml"
-    for coords in parse_single_image(annotations_file):
+    for coords in parse_single_annotations_file(annotations_file):
         set_label(annotations_file, coords, "dummy value").write(annotations_file)
         print(f"x_min: {coords.x_min}, y_min: {coords.y_min}, x_max: {coords.x_max}, y_max: {coords.y_max}")
