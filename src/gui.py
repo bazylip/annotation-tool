@@ -64,6 +64,9 @@ class MainApp(QWidget):
         """
         path = os.getcwd()
         self.directory_name = QFileDialog.getExistingDirectory(self, "Select directory", path)
+        if not self.directory_name:  # user did not select any directory
+            return
+
         self.current_file = os.path.join(self.directory_name, os.listdir(self.directory_name)[0])
         self.is_processing_images = True
 
