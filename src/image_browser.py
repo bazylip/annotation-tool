@@ -5,8 +5,6 @@ from collections import namedtuple
 
 Coords = namedtuple("Coords", ["x_min", "y_min", "x_max", "y_max"])
 
-IMG_RESIZE = 2.5
-
 
 def get_image_name(annotations_path: str) -> str:
     """
@@ -96,18 +94,19 @@ def compare_bndbox(candidate: ET.Element, coords: Coords) -> bool:
     return status
 
 
-def crop_cell_from_image(img_path: str, coords: Coords) -> Image:
+def crop_cell_from_image(img_path: str, coords: Coords, resize: float = 2.5) -> Image:
     """
     Return cropped cell from image
 
     :param img_path: Path of image
     :param coords: Coords of cell to be cropped
+    :param resize: Resize factor to make picture bigger/smaller
     :return: Cropped cell
     """
     img = Image.open(img_path)
     crop_rectangle = (coords.x_min, coords.y_min, coords.x_max, coords.y_max)
     cropped_img = img.crop(crop_rectangle)
-    cropped_img = cropped_img.resize([int(IMG_RESIZE * dim) for dim in cropped_img.size], Image.ANTIALIAS)
+    cropped_img = cropped_img.resize([int(resize * dim) for dim in cropped_img.size], Image.ANTIALIAS)
     return cropped_img
 
 

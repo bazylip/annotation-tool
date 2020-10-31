@@ -20,6 +20,8 @@ Labels = {
     Qt.Key_U: "Unknown",
 }
 
+Resize = {Qt.Key_1: 1.5, Qt.Key_2: 2.5, Qt.Key_3: 3.5}
+
 
 class MainApp(QWidget):
     def __init__(self):
@@ -104,15 +106,16 @@ class MainApp(QWidget):
         )"""
         self.process_cell()
 
-    def process_cell(self) -> None:
+    def process_cell(self, resize: float = 2.5) -> None:
         """
         Display a single cell
 
+        :param resize: Resize factor to make picture bigger/smaller
         :return: None
         """
         coords = self.coords_list[self.current_cell_index]
         image_path = image_browser.get_image_name(self.current_file)
-        cropped_cell = image_browser.crop_cell_from_image(image_path, coords)
+        cropped_cell = image_browser.crop_cell_from_image(image_path, coords, resize)
         cropped_cell_img = ImageQt(cropped_cell)
         pixmap = QPixmap.fromImage(cropped_cell_img)
 
@@ -135,6 +138,8 @@ class MainApp(QWidget):
             elif event.key() == Qt.Key_Left:
                 self.current_cell_index -= 1
                 self.process_annotations_file()
+            elif event.key() in Resize.keys():
+                self.process_cell(Resize[event.key()])
             elif event.key() in Labels.keys():
                 coords = self.coords_list[self.current_cell_index]
                 label = Labels[event.key()]
