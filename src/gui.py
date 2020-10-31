@@ -2,7 +2,7 @@ import sys
 import os
 import image_browser
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QFileDialog, QVBoxLayout
-from PyQt5.QtGui import QPixmap, QKeyEvent, QCloseEvent
+from PyQt5.QtGui import QPixmap, QKeyEvent
 from PyQt5.Qt import Qt
 from PyQt5 import QtWidgets, QtCore
 from PIL.ImageQt import ImageQt
@@ -65,16 +65,20 @@ class MainApp(QWidget):
 
         self.image = QLabel(self)
         self.image.setAlignment(Qt.AlignCenter)
+
+        self.label = QLabel(self)
+        self.label.setAlignment(Qt.AlignBottom | Qt.AlignCenter)
+
         self.layout.addWidget(self.image)
+        self.layout.addWidget(self.label)
 
         self.process_annotations_file()
 
     def process_annotations_file(self) -> None:
         """
-        Show all cells contained in the annotations file
+        Show cells contained in current annotations file
 
-        :param current_file: Path of annotations file to process
-        :return: New file path
+        :return: None
         """
         self.select_dir_button.hide()
 
@@ -115,7 +119,8 @@ class MainApp(QWidget):
         self.image.clear()
         self.image.setPixmap(pixmap)
         self.image.resize(pixmap.width(), pixmap.height())
-        # self.resize(pixmap.width(), pixmap.height())
+
+        self.label.setText("test value")
 
         self.update()
 
