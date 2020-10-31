@@ -15,7 +15,7 @@ def get_image_name(annotations_path: str) -> str:
     """
     tree = ET.parse(annotations_path)
     root = tree.getroot()
-    return root.find("path").text
+    return root.find("filename").text
 
 
 def parse_single_annotations_file(annotations_path: str) -> typing.List[Coords]:
@@ -108,10 +108,3 @@ def crop_cell_from_image(img_path: str, coords: Coords, resize: float = 2.5) -> 
     cropped_img = img.crop(crop_rectangle)
     cropped_img = cropped_img.resize([int(resize * dim) for dim in cropped_img.size], Image.ANTIALIAS)
     return cropped_img
-
-
-if __name__ == "__main__":
-    annotations_file = "/home/bazyli/projects/dataset_leukocytes/annotations_test/1_00002.xml"
-    for coords in parse_single_annotations_file(annotations_file):
-        set_label(annotations_file, coords, "dummy value").write(annotations_file)
-        print(f"x_min: {coords.x_min}, y_min: {coords.y_min}, x_max: {coords.x_max}, y_max: {coords.y_max}")

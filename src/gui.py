@@ -1,14 +1,16 @@
 import sys
 import os
 import image_browser
+from pathlib import Path
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QFileDialog, QVBoxLayout
-from PyQt5.QtGui import QPixmap, QKeyEvent
+from PyQt5.QtGui import QPixmap, QKeyEvent, QFont
 from PyQt5.Qt import Qt
 from PyQt5 import QtWidgets, QtCore
 from PIL.ImageQt import ImageQt
 
 WINDOW_WIDTH = 450
 WINDOW_HEIGHT = 450
+IMG_DIR = "img/"
 
 Labels = {
     Qt.Key_H: "Heterophil",
@@ -60,7 +62,7 @@ class MainApp(QWidget):
 
         :return: None
         """
-        path = "/home/bazyli/projects/dataset_leukocytes"
+        path = os.getcwd()
         self.directory_name = QFileDialog.getExistingDirectory(self, "Select directory", path)
         self.current_file = os.path.join(self.directory_name, os.listdir(self.directory_name)[0])
         self.is_processing_images = True
@@ -70,6 +72,7 @@ class MainApp(QWidget):
 
         self.label = QLabel(self)
         self.label.setAlignment(Qt.AlignBottom | Qt.AlignCenter)
+        self.label.setFont(QFont("Arial", 14))
 
         self.layout.addWidget(self.image)
         self.layout.addWidget(self.label)
@@ -99,11 +102,6 @@ class MainApp(QWidget):
             self.coords_list = image_browser.parse_single_annotations_file(self.current_file)
             self.current_cell_index = len(self.coords_list) - 1 if self.current_cell_index < 0 else 0
 
-        """print(
-            f"Current file: {self.current_file}, "
-            f"cell index: {self.current_cell_index}, "
-            f"coords length: {len(self.coords_list)}"
-        )"""
         self.process_cell()
 
     def process_cell(self, resize: float = 2.5) -> None:
@@ -114,7 +112,11 @@ class MainApp(QWidget):
         :return: None
         """
         coords = self.coords_list[self.current_cell_index]
-        image_path = image_browser.get_image_name(self.current_file)
+
+        image_name = image_browser.get_image_name(self.current_file)
+        parent_path = Path(self.current_file).parents[1]
+        image_path = os.path.join(parent_path, IMG_DIR, image_name)
+
         cropped_cell = image_browser.crop_cell_from_image(image_path, coords, resize)
         cropped_cell_img = ImageQt(cropped_cell)
         pixmap = QPixmap.fromImage(cropped_cell_img)
