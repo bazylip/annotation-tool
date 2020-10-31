@@ -63,6 +63,22 @@ def set_label(annotations_path: str, coords: Coords, label: str) -> ET.ElementTr
     raise LookupError("Could not find cell with given coords")
 
 
+def get_label(annotations_path: str, coords: Coords) -> str:
+    """
+    Get label of the cell
+
+    :param annotations_path: Path of annotations file
+    :param coords: Coordinates of cell to be labeled
+    :return: Cell label
+    """
+    tree = ET.parse(annotations_path)
+    root = tree.getroot()
+    for candidate_object in root.findall("object"):
+        if compare_bndbox(candidate_object.find("bndbox"), coords):
+            return candidate_object.find("name").text
+    raise LookupError("Could not find cell with given coords")
+
+
 def compare_bndbox(candidate: ET.Element, coords: Coords) -> bool:
     """
     Check if cadidate "object" XML element has same coords

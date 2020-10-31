@@ -102,15 +102,15 @@ class MainApp(QWidget):
             f"cell index: {self.current_cell_index}, "
             f"coords length: {len(self.coords_list)}"
         )"""
-        self.process_cell(self.coords_list[self.current_cell_index])
+        self.process_cell()
 
-    def process_cell(self, coords: image_browser.Coords) -> None:
+    def process_cell(self) -> None:
         """
         Display a single cell
 
-        :param coords: Coordinates of the cell
         :return: None
         """
+        coords = self.coords_list[self.current_cell_index]
         image_path = image_browser.get_image_name(self.current_file)
         cropped_cell = image_browser.crop_cell_from_image(image_path, coords)
         cropped_cell_img = ImageQt(cropped_cell)
@@ -120,7 +120,9 @@ class MainApp(QWidget):
         self.image.setPixmap(pixmap)
         self.image.resize(pixmap.width(), pixmap.height())
 
-        self.label.setText("test value")
+        self.label.setText(
+            f"Label: {image_browser.get_label(self.current_file, self.coords_list[self.current_cell_index])}"
+        )
 
         self.update()
 
@@ -137,6 +139,7 @@ class MainApp(QWidget):
                 coords = self.coords_list[self.current_cell_index]
                 label = Labels[event.key()]
                 image_browser.set_label(self.current_file, coords, label).write(self.current_file)
+                self.process_cell()
                 print(f"File: {self.current_file}, coords: {coords}, label: {label}")
 
     def eventFilter(self, source, event):
