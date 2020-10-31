@@ -4,9 +4,7 @@ from PIL import Image
 from collections import namedtuple
 
 Coords = namedtuple("Coords", ["x_min", "y_min", "x_max", "y_max"])
-CellTypes = namedtuple(
-    "CellTypes", ["Heterophil", "Lymphocyte", "Monocyte", "Basophil", "Thrombocyte", "Eosinophil", "Unknown"]
-)
+
 IMG_RESIZE = 2.5
 
 

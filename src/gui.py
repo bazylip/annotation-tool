@@ -1,16 +1,24 @@
 import sys
 import os
 import image_browser
-import time
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QFileDialog, QVBoxLayout
 from PyQt5.QtGui import QPixmap, QKeyEvent, QCloseEvent
 from PyQt5.Qt import Qt
-from PyQt5.QtCore import QCoreApplication
 from PyQt5 import QtWidgets, QtCore
 from PIL.ImageQt import ImageQt
 
 WINDOW_WIDTH = 450
 WINDOW_HEIGHT = 450
+
+Labels = {
+    Qt.Key_H: "Heterophil",
+    Qt.Key_L: "Lymphocyte",
+    Qt.Key_M: "Monocyte",
+    Qt.Key_B: "Basophil",
+    Qt.Key_T: "Thrombocyte",
+    Qt.Key_E: "Eosinophil",
+    Qt.Key_U: "Unknown",
+}
 
 
 class MainApp(QWidget):
@@ -70,9 +78,9 @@ class MainApp(QWidget):
         """
         self.select_dir_button.hide()
 
-        coords_list = image_browser.parse_single_annotations_file(self.current_file)  # list of cells' coords
+        self.coords_list = image_browser.parse_single_annotations_file(self.current_file)  # list of cells' coords
 
-        if self.current_cell_index < 0 or self.current_cell_index >= len(coords_list):  # go to previous/next file
+        if self.current_cell_index < 0 or self.current_cell_index >= len(self.coords_list):  # go to previous/next file
             old_filename_index = os.listdir(self.directory_name).index(self.current_file.split("/")[-1])
             new_filename_index = old_filename_index - 1 if self.current_cell_index < 0 else old_filename_index + 1
             new_filename_index = new_filename_index % len(
@@ -82,25 +90,24 @@ class MainApp(QWidget):
             new_filename = os.listdir(self.directory_name)[new_filename_index]
             self.current_file = os.path.join(self.directory_name, new_filename)
 
-            coords_list = image_browser.parse_single_annotations_file(self.current_file)
-            self.current_cell_index = len(coords_list) - 1 if self.current_cell_index < 0 else 0
+            self.coords_list = image_browser.parse_single_annotations_file(self.current_file)
+            self.current_cell_index = len(self.coords_list) - 1 if self.current_cell_index < 0 else 0
 
-        print(
+        """print(
             f"Current file: {self.current_file}, "
             f"cell index: {self.current_cell_index}, "
-            f"coords length: {len(coords_list)}"
-        )
-        self.process_cell(self.current_file, coords_list[self.current_cell_index])
+            f"coords length: {len(self.coords_list)}"
+        )"""
+        self.process_cell(self.coords_list[self.current_cell_index])
 
-    def process_cell(self, file_path: str, coords: image_browser.Coords) -> None:
+    def process_cell(self, coords: image_browser.Coords) -> None:
         """
         Display a single cell
 
-        :param file_path: Path of annotations file
         :param coords: Coordinates of the cell
         :return: None
         """
-        image_path = image_browser.get_image_name(file_path)
+        image_path = image_browser.get_image_name(self.current_file)
         cropped_cell = image_browser.crop_cell_from_image(image_path, coords)
         cropped_cell_img = ImageQt(cropped_cell)
         pixmap = QPixmap.fromImage(cropped_cell_img)
@@ -121,6 +128,11 @@ class MainApp(QWidget):
             elif event.key() == Qt.Key_Left:
                 self.current_cell_index -= 1
                 self.process_annotations_file()
+            elif event.key() in Labels.keys():
+                coords = self.coords_list[self.current_cell_index]
+                label = Labels[event.key()]
+                image_browser.set_label(self.current_file, coords, label).write(self.current_file)
+                print(f"File: {self.current_file}, coords: {coords}, label: {label}")
 
     def eventFilter(self, source, event):
         """Low-level event handler"""
