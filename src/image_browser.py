@@ -4,7 +4,10 @@ from PIL import Image
 from collections import namedtuple
 
 Coords = namedtuple("Coords", ["x_min", "y_min", "x_max", "y_max"])
-IMG_RESIZE = 3
+CellTypes = namedtuple(
+    "CellTypes", ["Heterophil", "Lymphocyte", "Monocyte", "Basophil", "Thrombocyte", "Eosinophil", "Unknown"]
+)
+IMG_RESIZE = 2.5
 
 
 def get_image_name(annotations_path: str) -> str:
