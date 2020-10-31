@@ -9,11 +9,16 @@ from PyQt5.QtCore import QCoreApplication
 from PyQt5 import QtWidgets, QtCore
 from PIL.ImageQt import ImageQt
 
+WINDOW_WIDTH = 450
+WINDOW_HEIGHT = 450
+
 
 class MainApp(QWidget):
     def __init__(self):
         super().__init__()
         self.layout = QVBoxLayout()
+        self.setFixedWidth(WINDOW_WIDTH)
+        self.setFixedHeight(WINDOW_HEIGHT)
         self.key_pressed = False
 
         self.current_file = None
@@ -50,6 +55,7 @@ class MainApp(QWidget):
         self.finish_browsing = False
 
         self.image = QLabel(self)
+        self.image.setAlignment(Qt.AlignCenter)
         self.layout.addWidget(self.image)
 
         while not self.finish_browsing:
@@ -106,7 +112,7 @@ class MainApp(QWidget):
         self.image.clear()
         self.image.setPixmap(pixmap)
         self.image.resize(pixmap.width(), pixmap.height())
-        self.resize(pixmap.width(), pixmap.height())
+        # self.resize(pixmap.width(), pixmap.height())
 
         self.update()
 
