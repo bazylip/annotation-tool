@@ -5,7 +5,8 @@
 
  - Na aktualnej stronie repozytorium znajdź przycisk **Code** → **Download ZIP**
  - Rozpakuj plik, przejdź do katalogu **annotation-tool** znajdującego się w środku
- - Kliknij na pasek ze ścieżką do pliku, wpisz `cmd` i kliknij Enter (screenshot)
+ - Kliknij na pasek ze ścieżką do pliku (patrz zdjęcie), wpisz `cmd` i kliknij Enter
+ ![screenshot](extras/path_instructions.jpg)
  - W terminalu który się otworzy wpisz `python3`
 	 - Jeżeli nie masz zainstalowanego Pythona, powinno otworzyć się okno Microsoft Store, w którym będzie go można zainstalować
 	 - Jeżeli masz zainstalowanego Pythona, wpisz `quit()` i kliknij Enter
