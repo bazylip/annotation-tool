@@ -1,4 +1,3 @@
-import sys
 import os
 import image_browser
 from pathlib import Path
@@ -45,11 +44,17 @@ class MainApp(QWidget):
 
         :return: None
         """
+        self.prompt_label = QLabel(self)
+        self.prompt_label.setText("Please select directory")
+        self.prompt_label.setFixedHeight(30)
+
         self.select_dir_button = QPushButton("Select directory", self)
         self.select_dir_button.setToolTip("Select directory")
         self.select_dir_button.clicked.connect(self.open_directory_browser)
 
+        self.layout.addWidget(self.prompt_label)
         self.layout.addWidget(self.select_dir_button)
+        self.layout.setAlignment(Qt.AlignHCenter)
         self.setLayout(self.layout)
 
         QtWidgets.qApp.installEventFilter(self)
@@ -64,8 +69,14 @@ class MainApp(QWidget):
         """
         path = os.getcwd()
         self.directory_name = QFileDialog.getExistingDirectory(self, "Select directory", path)
-        if not self.directory_name:  # user did not select any directory
+        if (
+            not self.directory_name or self.directory_name.split("/")[-1] != "xml"
+        ):  # user did not select correct directory
+            self.prompt_label.setText("Wrong directory! Please select annotations/xml")
             return
+
+        self.select_dir_button.hide()
+        self.prompt_label.hide()
 
         self.current_file = os.path.join(self.directory_name, os.listdir(self.directory_name)[0])
         self.is_processing_images = True
@@ -88,23 +99,21 @@ class MainApp(QWidget):
 
         :return: None
         """
-        self.select_dir_button.hide()
-
         self.coords_list = image_browser.parse_single_annotations_file(self.current_file)  # list of cells' coords
-
         if self.current_cell_index < 0 or self.current_cell_index >= len(self.coords_list):  # go to previous/next file
-            old_filename_index = os.listdir(self.directory_name).index(self.current_file.split("/")[-1])
+            separator = "\\" if os.name == "nt" else "/"  # adjust file path separator to linux/windows
+            old_filename_index = os.listdir(self.directory_name).index(self.current_file.split(separator)[-1])
             new_filename_index = old_filename_index - 1 if self.current_cell_index < 0 else old_filename_index + 1
             new_filename_index = new_filename_index % len(
                 os.listdir(self.directory_name)
             )  # handle list index out of range
-
             new_filename = os.listdir(self.directory_name)[new_filename_index]
             self.current_file = os.path.join(self.directory_name, new_filename)
 
             self.coords_list = image_browser.parse_single_annotations_file(self.current_file)
             self.current_cell_index = len(self.coords_list) - 1 if self.current_cell_index < 0 else 0
 
+        # print(f"Current file: {self.current_file}, current cell index: {self.current_cell_index}")
         self.process_cell()
 
     def process_cell(self, resize: float = 2.5) -> None:
@@ -119,12 +128,10 @@ class MainApp(QWidget):
         image_name = image_browser.get_image_name(self.current_file)
         parent_path = Path(self.current_file).parents[1]
         image_path = os.path.join(parent_path, IMG_DIR, image_name)
-
-        cropped_cell = image_browser.crop_cell_from_image(image_path, coords, resize)
-        cropped_cell_img = ImageQt(cropped_cell)
-        pixmap = QPixmap.fromImage(cropped_cell_img)
-
+        img_path = image_browser.crop_cell_from_image(image_path, coords, parent_path, resize)
+        pixmap = QPixmap(img_path)
         self.image.clear()
+
         self.image.setPixmap(pixmap)
         self.image.resize(pixmap.width(), pixmap.height())
 
@@ -165,4 +172,4 @@ class MainApp(QWidget):
 if __name__ == "__main__":
     app = QApplication([])
     exit_code = MainApp()
-    sys.exit(app.exec_())
+    app.exec_()
