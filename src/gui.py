@@ -69,7 +69,9 @@ class MainApp(QWidget):
         """
         path = os.getcwd()
         self.directory_name = QFileDialog.getExistingDirectory(self, "Select directory", path)
-        if not self.directory_name or self.directory_name.split("/")[-1] != "xml":  # user did not select correct directory
+        if (
+            not self.directory_name or self.directory_name.split("/")[-1] != "xml"
+        ):  # user did not select correct directory
             self.prompt_label.setText("Wrong directory! Please select annotations/xml")
             return
 

@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 import typing
 import os
+import pathlib
 from PIL import Image
 from collections import namedtuple
 
@@ -96,12 +97,15 @@ def compare_bndbox(candidate: ET.Element, coords: Coords) -> bool:
     return status
 
 
-def crop_cell_from_image(img_path: str, coords: Coords, tmp_directory_path: str, resize: float = 2.5) -> Image:
+def crop_cell_from_image(
+    img_path: str, coords: Coords, tmp_directory_path: pathlib.Path, resize: float = 2.5
+) -> Image:
     """
     Return cropped cell from image
 
     :param img_path: Path of image
     :param coords: Coords of cell to be cropped
+    :param tmp_directory_path: Path to save tmp image
     :param resize: Resize factor to make picture bigger/smaller
     :return: Cropped cell
     """
