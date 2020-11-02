@@ -38,5 +38,6 @@ Program służy do klasyfikacji leukocytów, które zostały wcześniej ręcznie
 		 - m - Monocyt
 		 - u - Unknown (brak pewności/inny rodzaj komórki)
 	- **Przejście do poprzedniego/następnego zdjęcia** - za pomocą strzałek lewo/prawo
+	- **Zmiana przybliżenia** - za pomocą klawiszy 1, 2, 3
 - Etykieta **"None"** oznacza, że komórka nie została jeszcze oznaczona
 - Po zakończeniu pracy prześlij mi zawartość katalogu **annotations/xml** w celu sprawdzenia czy wszystko dobrze działa
