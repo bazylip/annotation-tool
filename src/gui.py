@@ -1,4 +1,5 @@
 import os
+import json
 import image_browser
 from pathlib import Path
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QFileDialog, QVBoxLayout
@@ -7,9 +8,13 @@ from PyQt5.Qt import Qt
 from PyQt5 import QtWidgets, QtCore
 from PIL.ImageQt import ImageQt
 
-WINDOW_WIDTH = 450
-WINDOW_HEIGHT = 450
-IMG_DIR = "img/"
+CONFIG_PATH = "configs/config.json"
+with open(CONFIG_PATH, "r") as json_config:
+    CONFIG = json.load(json_config)
+
+WINDOW_WIDTH = CONFIG["WINDOW_WIDTH"]
+WINDOW_HEIGHT = CONFIG["WINDOW_HEIGHT"]
+IMG_DIR = CONFIG["IMG_DIR"]
 
 Labels = {
     Qt.Key_H: "Heterophil",
@@ -35,6 +40,7 @@ class MainApp(QWidget):
 
         self.current_file = None
         self.current_cell_index = 0
+        self.zoom = True
 
         self.init_ui()
 
@@ -78,7 +84,7 @@ class MainApp(QWidget):
         self.select_dir_button.hide()
         self.prompt_label.hide()
 
-        self.current_file = os.path.join(self.directory_name, os.listdir(self.directory_name)[0])
+        self.current_file = os.path.join(self.directory_name, sorted(os.listdir(self.directory_name))[0])
         self.is_processing_images = True
 
         self.image = QLabel(self)
@@ -102,12 +108,12 @@ class MainApp(QWidget):
         self.coords_list = image_browser.parse_single_annotations_file(self.current_file)  # list of cells' coords
         if self.current_cell_index < 0 or self.current_cell_index >= len(self.coords_list):  # go to previous/next file
             separator = "\\" if os.name == "nt" else "/"  # adjust file path separator to linux/windows
-            old_filename_index = os.listdir(self.directory_name).index(self.current_file.split(separator)[-1])
+            old_filename_index = sorted(os.listdir(self.directory_name)).index(self.current_file.split(separator)[-1])
             new_filename_index = old_filename_index - 1 if self.current_cell_index < 0 else old_filename_index + 1
             new_filename_index = new_filename_index % len(
                 os.listdir(self.directory_name)
             )  # handle list index out of range
-            new_filename = os.listdir(self.directory_name)[new_filename_index]
+            new_filename = sorted(os.listdir(self.directory_name))[new_filename_index]
             self.current_file = os.path.join(self.directory_name, new_filename)
 
             self.coords_list = image_browser.parse_single_annotations_file(self.current_file)
@@ -116,7 +122,7 @@ class MainApp(QWidget):
         # print(f"Current file: {self.current_file}, current cell index: {self.current_cell_index}")
         self.process_cell()
 
-    def process_cell(self, resize: float = 2.5) -> None:
+    def process_cell(self, resize: float = 1.5) -> None:
         """
         Display a single cell
 
@@ -128,7 +134,7 @@ class MainApp(QWidget):
         image_name = image_browser.get_image_name(self.current_file)
         parent_path = Path(self.current_file).parents[1]
         image_path = os.path.join(parent_path, IMG_DIR, image_name)
-        img_path = image_browser.crop_cell_from_image(image_path, coords, parent_path, resize)
+        img_path = image_browser.crop_cell_from_image(image_path, coords, parent_path, resize, self.zoom)
         pixmap = QPixmap(img_path)
         self.image.clear()
 
@@ -136,7 +142,11 @@ class MainApp(QWidget):
         self.image.resize(pixmap.width(), pixmap.height())
 
         self.label.setText(
-            f"Label: {image_browser.get_label(self.current_file, self.coords_list[self.current_cell_index])}"
+            f"Label: {image_browser.get_label(self.current_file, self.coords_list[self.current_cell_index])}\
+            \n\nh - heterofil, l - limfocyt, t - trombofil\
+            \ne - eozynofil, b - bazofil, m - monocyt\
+            \nu - nierozpoznany\
+            \n1, 2, 3 - powiększenie, z - zoom na komórkę"
         )
 
         self.update()
@@ -152,6 +162,9 @@ class MainApp(QWidget):
                 self.process_annotations_file()
             elif event.key() in Resize.keys():
                 self.process_cell(Resize[event.key()])
+            elif event.key() == Qt.Key_Z:
+                self.zoom = not self.zoom
+                self.process_cell()
             elif event.key() in Labels.keys():
                 coords = self.coords_list[self.current_cell_index]
                 label = Labels[event.key()]

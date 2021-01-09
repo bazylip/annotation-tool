@@ -2,11 +2,20 @@ import xml.etree.ElementTree as ET
 import typing
 import os
 import pathlib
-from PIL import Image
+import json
+from PIL import Image, ImageDraw
+from PIL import ImageFile
 from collections import namedtuple
 
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 Coords = namedtuple("Coords", ["x_min", "y_min", "x_max", "y_max"])
-TMP_IMG_NAME = "current_cell.jpg"
+
+CONFIG_PATH = "configs/config.json"
+with open(CONFIG_PATH, "r") as json_config:
+    CONFIG = json.load(json_config)
+
+TMP_IMG_NAME = CONFIG["TMP_IMG_NAME"]
+ZOOM_SIZE = CONFIG["ZOOM_SIZE"]
 
 
 def get_image_name(annotations_path: str) -> str:
@@ -98,7 +107,7 @@ def compare_bndbox(candidate: ET.Element, coords: Coords) -> bool:
 
 
 def crop_cell_from_image(
-    img_path: str, coords: Coords, tmp_directory_path: pathlib.Path, resize: float = 2.5
+    img_path: str, coords: Coords, tmp_directory_path: pathlib.Path, resize: float = 1.5, zoom: bool = False
 ) -> Image:
     """
     Return cropped cell from image
@@ -110,10 +119,38 @@ def crop_cell_from_image(
     :return: Cropped cell
     """
     img = Image.open(img_path)
-    crop_rectangle = (coords.x_min, coords.y_min, coords.x_max, coords.y_max)
-    cropped_img = img.crop(crop_rectangle)
-    cropped_img = cropped_img.resize([int(resize * dim) for dim in cropped_img.size], Image.ANTIALIAS)
+    img_width, img_height = img.size
+    if zoom:
+        x_min = max(coords.x_min - ZOOM_SIZE, 0)
+        y_min = max(coords.y_min - ZOOM_SIZE, 0)
+        x_max = min(coords.x_max + ZOOM_SIZE, img_width)
+        y_max = min(coords.y_max + ZOOM_SIZE, img_height)
+        crop_rectangle = (x_min, y_min, x_max, y_max)
+    else:
+        crop_rectangle = (coords.x_min, coords.y_min, coords.x_max, coords.y_max)
 
+    cropped_img = img.crop(crop_rectangle)
+
+    if zoom:
+        draw_img = ImageDraw.Draw(cropped_img)
+        crop_width, crop_height = cropped_img.size
+
+        x_min = ZOOM_SIZE if coords.x_min - ZOOM_SIZE >= 0 else coords.x_min
+        y_min = ZOOM_SIZE if coords.y_min - ZOOM_SIZE >= 0 else coords.y_min
+        x_max = (
+            crop_width - ZOOM_SIZE if coords.x_max + ZOOM_SIZE <= img_width else x_min + (coords.x_max - coords.x_min)
+        )
+        y_max = (
+            crop_height - ZOOM_SIZE
+            if coords.y_max + ZOOM_SIZE <= img_height
+            else y_min + (coords.y_max - coords.y_min)
+        )
+
+        shape = [(x_min, y_min), (x_max, y_max)]
+        draw_img.rectangle(shape, outline="red", width=1)
+        print("drawing...")
+
+    cropped_img = cropped_img.resize([int(resize * dim) for dim in cropped_img.size], Image.ANTIALIAS)
     save_path = os.path.join(tmp_directory_path, TMP_IMG_NAME)
     cropped_img.save(save_path)
     return save_path
